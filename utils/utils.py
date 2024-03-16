@@ -593,6 +593,88 @@ def mark_hits(group, PRICE_CHANGE_THRESHOLD=PRICE_CHANGE_THRESHOLD,SENTIMENT_THR
 
     return group
 
+
+class NewsClassifier:
+    def __init__(self, test_set, models, target_names, num_examples=100, seed_value=0):
+        self.set_seed(seed_value)
+        self.test_set = test_set
+        self.models = models
+        self.target_names = target_names
+        self.num_examples = num_examples
+
+    @staticmethod
+    def set_seed(seed_value=42):
+        np.random.seed(seed_value)
+        torch.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    def evaluate_models(self, num_columns=3, figsize=(15, 10)):
+        evaluation_results = []
+
+        num_models = len(self.models)
+        num_rows = (num_models + num_columns - 1) // num_columns
+
+        fig, axes = plt.subplots(num_rows, num_columns, figsize=figsize, sharey=True)
+        fig.subplots_adjust(wspace=0.5, hspace=0.5)
+        check = u'\u2705'
+
+        for idx, (model_name, model_checkpoint) in enumerate(self.models.items()):
+            print(f"{check} Evaluating {model_name}...")
+
+            tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+            model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=3)
+
+            test_texts = self.test_set["sentence"].tolist()[:self.num_examples]
+            test_true_labels = self.test_set["label"].tolist()[:self.num_examples]
+
+            test_inputs = tokenizer(test_texts, return_tensors="pt", padding=True, truncation=True)
+            with torch.no_grad():
+                logits = model(**test_inputs).logits
+            test_pred_labels = np.argmax(logits.numpy(), axis=1)
+
+            accuracy = accuracy_score(test_true_labels, test_pred_labels)
+            f1 = f1_score(test_true_labels, test_pred_labels, average='weighted')
+            report = classification_report(test_true_labels, test_pred_labels, target_names=self.target_names, output_dict=True, digits=4)
+
+            evaluation_results.append({
+                "Model": model_name,
+                "Accuracy": accuracy,
+                "F1 Score": f1,
+                "Negative F1": report["Negative"]["f1-score"],
+                "Neutral F1": report["Neutral"]["f1-score"],
+                "Positive F1": report["Positive"]["f1-score"],
+            })
+
+            ax = axes[idx // num_columns, idx % num_columns]
+            conf_matrix = confusion_matrix(test_true_labels, test_pred_labels)
+            im = ax.imshow(conf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+            ax.set_title(f"{model_name}\nAccuracy: {accuracy:.4f}\nF1 Score: {f1:.4f}")
+            tick_marks = np.arange(3)
+            ax.set_xticks(tick_marks)
+            ax.set_yticks(tick_marks)
+            ax.set_xticklabels(self.target_names)
+            ax.set_yticklabels(self.target_names)
+
+            # Display F1 scores in the confusion matrix
+            for i in range(conf_matrix.shape[0]):
+                for j in range(conf_matrix.shape[1]):
+                    text_color = "white" if conf_matrix[i, j] > conf_matrix.max() / 2 else "black"
+                    ax.text(j, i, f"{conf_matrix[i, j]}\n({report[self.target_names[i]]['f1-score']:.4f})",
+                            ha="center", va="center", color=text_color, fontsize=10)
+
+        for idx in range(num_models, num_rows * num_columns):
+            axes[idx // num_columns, idx % num_columns].axis("off")
+
+        evaluation_df = pd.DataFrame(evaluation_results)
+        evaluation_df.set_index("Model", inplace=True)
+
+        print(evaluation_df)
+        plt.show()
+        return evaluation_df
+
+
 class FinancialDataset(Dataset):
     def __init__(self, data, tokenizer, max_length):
         self.data = data
