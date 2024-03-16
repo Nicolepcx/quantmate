@@ -17,6 +17,9 @@ import pandas_market_calendars as mcal
 from torch.nn.functional import softmax
 
 
+PRICE_CHANGE_THRESHOLD= 0.1  # Define threshold for significant price change
+SENTIMENT_THRESHOLD = 0.8  # Define threshold for strong sentiment
+
 def set_seed(seed_value=42):
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
@@ -560,7 +563,7 @@ def merge_dates(df):
     return(new_df)
 
 #Get hits of sentiment and price changes
-def mark_hits(group, PRICE_CHANGE_THRESHOLD, SENTIMENT_THRESHOLD):
+def mark_hits(group, PRICE_CHANGE_THRESHOLD=PRICE_CHANGE_THRESHOLD,SENTIMENT_THRESHOLD=SENTIMENT_THRESHOLD):
     threshold_percent = PRICE_CHANGE_THRESHOLD  # Define threshold for significant price change
     threshold_sentiment = SENTIMENT_THRESHOLD  # Define threshold for strong sentiment
     for i in range(len(group) - 3):
