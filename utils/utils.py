@@ -12,7 +12,7 @@ import pandas_datareader
 from pandas_datareader import data as pdr
 import pandas as pd
 import numpy as np
-import yfinance
+import yfinance as yf
 import pandas_market_calendars as mcal
 
 
