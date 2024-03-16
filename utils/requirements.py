@@ -4,7 +4,7 @@ import subprocess
 def install_packages():
     packages = ["transformers == 4.38.2", "evaluate==0.4.0", "pyarrow==9.0.0",
                 "sentencepiece", "yfinance==0.2.37", "pandas_datareader==0.10.0",
-                "pandas_market_calendars==4.4.0", "huggingface_hub==0.20.3"]
+                "pandas_market_calendars==4.4.0", "huggingface_hub==0.20.3", "datasets==2.10.1"]
     check = u'\u2705'
     print("\033[1mInstalling requirements...\n\033[0m")
     for package in packages:

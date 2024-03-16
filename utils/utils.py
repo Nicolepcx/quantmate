@@ -593,3 +593,29 @@ def mark_hits(group, PRICE_CHANGE_THRESHOLD=PRICE_CHANGE_THRESHOLD,SENTIMENT_THR
 
     return group
 
+class FinancialDataset(Dataset):
+    def __init__(self, data, tokenizer, max_length):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        text = self.data.iloc[index]['sentence']
+        label = self.data.iloc[index]['label']
+        encoding = self.tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            padding='max_length',
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors='pt'
+        )
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'labels': torch.tensor(label, dtype=torch.long)
+        }
