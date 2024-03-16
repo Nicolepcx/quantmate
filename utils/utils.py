@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import pandas_market_calendars as mcal
+from torch.nn.functional import softmax
 
 
 def set_seed(seed_value=42):
